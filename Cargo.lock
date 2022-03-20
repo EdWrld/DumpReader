@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "Dump-Reader"
+name = "dump_reader"
 version = "0.1.0"

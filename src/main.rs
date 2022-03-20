@@ -1,24 +1,33 @@
+// we want the args function from env but its good practice to bring out the parent module instead of just the function
+use std::env;
+use std::fs; // need this to handle files 
+use std::io::{self, BufRead};
 fn main() {
-    let map = OurMap::new();
-    map.insert(1,20);
-}
 
-struct OurMap {} // struct camelcase, fun snake case, file hyphen
+    let args: Vec<String> = env::args().collect(); // args() creates a iterator, .collect() makes it a collection 
+    let stdin = io::stdin();
 
-impl OurMap {
-        fn new() -> OurMap { // so we have a function that returns a map to us
-            OurMap {}
-        }     
-
-        fn insert(self, key: u64, value: i8){}
+    let mut content: String = String::new();  
+    
+    if args.len() == 2 {        
+        content = fs::read_to_string(&args[1]) // filename
+        .expect("Something went wrong when reading file");
     }
-
+    else{
+        for line in stdin.lock().lines(){
+            let line = line.expect("Could not read line from standard in");
+            content.push_str(&line);
+            content.push_str("\n");
+        } 
+    }
    
- /* So right now this a associated, or static function.. self changes this
-     u stands for unsigned, and i stands for signed : assigning types
-     apparently there is a way to make it decide for us... 
+    println!("\n{}",content);
 
+    
+        // println!("{:?}", args); // println! is a macro not a function, so it rewrites the code on runtime
+        // println!("\n{}",content);
+    
+}
+// If you run into the linker cc issue its because you don't have gcc installed 
+// To read the file you need to do cargo run in the same location as the Cargo.toml file
 
-
-     () this is the unit type its simiar to void except its a value it represent nothing*/ 
- 
