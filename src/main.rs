@@ -8,42 +8,24 @@ fn main() {
 
     let args: Vec<String> = env::args().collect(); // args() creates a iterator, .collect() makes it a collection 
     let stdin = io::stdin();
-
+    let mut disk_dump: String = String::new(); 
     // println!("{:?}", args);
 
-    let mut content: String = String::new(); 
-
-
     if args.len() >= 2 && &args[1][0..2] != "-" { // user inputted a file as a parameter
-
-        
-        let temp_content: String = fs::read_to_string(&args[1]) // read file
+         disk_dump = fs::read_to_string(&args[1]) // read file
         .expect("Something went wrong when reading file");
-
-        // removing lines that arn't needed. 
-        let mut index : i32 = 0;
-            for line in temp_content.lines(){
-                if !(index <2){
-                    content.push_str(line);
-                    content.push_str("\n");
-                }
-                index +=1;        
-            }
-        println!("{}", content);
     }
     else { // user piped input 
-        for line in stdin.lock().lines(){
-            
+        for line in stdin.lock().lines(){      
             let line = line.expect("Could not read line from standard input");
-            content.push_str(&line);
-            content.push_str("\n"); 
+            disk_dump.push_str(&line);
+            disk_dump.push_str("\n"); 
             
         }
     }
-   
-   extra_arg_functionality(args);
-   // println!("{}",content);
-   
+
+    output_dump(disk_dump);
+    extra_arg_functionality(args);
    
 }
 
@@ -58,60 +40,98 @@ fn extra_arg_functionality(args: Vec<String>){
     }
 }
 
-enum ClusterType {
-    Root, // Root cluster, decode everything past column 07 
-    Folder, // 
-    Empty, // 
-    Damaged, // 
-    Fileheader, // everything past column 05 is what we need to decode
-    Filedata, // everything past column 03 is what we need to decode  
-}
+// fn insert_type_with_gap(dump: String ,typ: String, line: &String){
+//   dumpl .push_str(&line[0..2]);
+//   dumpl .push_str(typ);
+//   dumpl .push_str("               ");    
+//   dumpl .push_str(&line[4..]);
+//   dumpl .push_str("\n")
+// }
+// decodes the ascii areas of the dump and outputs it
 
-struct cluster{
-    kind: ClusterType
-} 
+fn output_dump(dump:String) {
 
-// decodes the ascii areas of the dump and outputs it 
-fn output_dump(dump:String){
-
-    let mut decoded_dump : String = String::new();
-
+    let mut index : i32 = 0;
+    let mut decoded_dump: String = String::new();
     let mut is_root: bool = true;
-
-    if is_root != true{
-        
+    
     for line in dump.lines(){
 
-        match &line[3..3]{
-           "0" => 
-           {
-               decoded_dump.push_str("folder");
+        if index ==0{
+            decoded_dump.push_str(&line[0..3]);
+            decoded_dump.push_str("                ");
+            decoded_dump.push_str(&line[3..]);
+            decoded_dump.push_str("\n");
+        }else if index ==1 {
+            decoded_dump.push_str(&line[0..3]);
+            decoded_dump.push_str(" ");
+            decoded_dump.push_str(&line[3..4]);
+            decoded_dump.push_str("               ");    
+            decoded_dump.push_str(&line[4..]);
+            decoded_dump.push_str("\n")
 
-            },
-            "1" =>
-             {
-               decoded_dump.push_str("empty cluster");
+        }else if index>= 2 && !is_root{ // the split is exclusive not inclusive
 
-            },
-            "2" => {
-               decoded_dump.push_str("damaged cluster");
+            match &line[3..4]{
+                "0" => 
+                 {
+                    decoded_dump.push_str(&line[0..3]); 
+                    decoded_dump.push_str(" folder");
+                    decoded_dump.push_str("               ");
+                    decoded_dump.push_str(&line[4..]);
+                    decoded_dump.push_str("\n")
+                    },
+                "1" =>
+                 {
+                    decoded_dump.push_str(&line[0..3]);  
+                    decoded_dump.push_str(" empty cluster");
+                    decoded_dump.push_str("   ");
+                    decoded_dump.push_str(&line[4..]);
+                    decoded_dump.push_str("\n");
+                },
+                "2" => {
+                    decoded_dump.push_str(&line[0..3]);  
+                    decoded_dump.push_str(" damaged cluster");
+                    decoded_dump.push_str("               ");
+                    decoded_dump.push_str(&line[4..]);
+                    decoded_dump.push_str("\n");
 
-            },
-            "3" => {
-               decoded_dump.push_str("file header");
+                },
+                "3" => {
+                    decoded_dump.push_str(&line[0..3]); 
+                    decoded_dump.push_str(" file header");
+                    decoded_dump.push_str("     ");
+                    decoded_dump.push_str(&line[4..7]);
+                    decoded_dump.push_str(&line[8..].to_ascii_lowercase());
+                    decoded_dump.push_str("\n");
 
-            },
-            "4" => {
-                decoded_dump.push_str("file data")
+                },
+                "4" => {
+                    decoded_dump.push_str(&line[0..3]); 
+                    decoded_dump.push_str(" file data");
+                    decoded_dump.push_str("       ");
+                    decoded_dump.push_str(&line[4..5]); 
+                    decoded_dump.push_str(&line[6..].to_ascii_lowercase());
+                    decoded_dump.push_str("\n");
+
+
+                }
+                _ => println!("The Cluster type is unknown")
             }
-            _ => println!("The Cluster type is unknown")
+    
         }
-    }
-}else{
-    //read cluster 
-    is_root = false;
-    }
-
+    else{
+        decoded_dump.push_str(&line[0..3]);
+        decoded_dump.push_str(" root cluster"); 
+        decoded_dump.push_str("    ");
+        decoded_dump.push_str(&line[4..8]);
+        decoded_dump.push_str(&line[9..].to_ascii_lowercase());
+        decoded_dump.push_str("\n");
+        is_root = false; 
+        }
+    index+=1;
+    } 
+println!("{}",decoded_dump);
 
 }
 
